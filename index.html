@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>입찰 대시보드</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --accent: #f0883e;
+    --accent2: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --text: #e6edf3;
+    --text-muted: #7d8590;
+    --text-dim: #484f58;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--text-muted); font-weight: 400; }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .last-update {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .api-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .api-badge:hover { border-color: var(--accent); }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--yellow);
+    animation: pulse 2s infinite;
+  }
+  .dot.live { background: var(--green); animation: none; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* MAIN */
+  .main { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+  /* STATS */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--accent2); }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.green { color: var(--green); }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* FILTER */
+  .filter-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filter-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  select, input[type="text"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    padding: 5px 10px;
+    font-size: 12px;
+    font-family: 'Noto Sans KR', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  select:focus, input[type="text"]:focus { border-color: var(--accent2); }
+  select { cursor: pointer; }
+
+  .btn {
+    padding: 5px 14px;
+    border-radius: 5px;
+    border: none;
+    font-size: 12px;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+  .btn-primary:hover { background: #ff9f50; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
+
+  .search-input {
+    width: 200px;
+  }
+
+  /* API 설정 패널 */
+  .api-panel {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .api-panel.show { display: block; }
+  .api-panel h3 {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .api-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .api-row label {
+    font-size: 12px;
+    color: var(--text-muted);
+    width: 100px;
+    flex-shrink: 0;
+  }
+  .api-row input {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .api-notice {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .api-notice a {
+    color: var(--accent2);
+    text-decoration: none;
+  }
+
+  /* TABLE */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .table-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .table-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .table-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  thead th {
+    background: var(--surface2);
+    padding: 9px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  thead th:first-child { padding-left: 16px; }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  td {
+    padding: 10px 12px;
+    vertical-align: middle;
+    font-size: 12px;
+  }
+  td:first-child { padding-left: 16px; }
+
+  .notice-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+    max-width: 280px;
+  }
+  .notice-org {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .notice-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 1px;
+  }
+
+  /* 업종 태그 */
+  .tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .tag-mech { background: #1f3a5f; color: #58a6ff; border: 1px solid #1f3a8f; }
+  .tag-interior { background: #2d1f5f; color: #bc8cff; border: 1px solid #5a2d8f; }
+  .tag-gas { background: #3d2200; color: #f0883e; border: 1px solid #7a4500; }
+  .tag-goods { background: #1a3d1a; color: #3fb950; border: 1px solid #2d6e2d; }
+
+  /* 금액 */
+  .amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .amount-base {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* 지역 */
+  .region {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* D-day */
+  .dday {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .dday-urgent { background: #3d0000; color: var(--red); border: 1px solid #7a0000; }
+  .dday-soon { background: #3d2d00; color: var(--yellow); border: 1px solid #7a5a00; }
+  .dday-normal { background: #1a2d1a; color: var(--green); border: 1px solid #2d5a2d; }
+  .dday-today { background: var(--red); color: #fff; }
+
+  /* 관련도 */
+  .relevance {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  /* 제한경쟁 뱃지 */
+  .limit-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    background: #1f2d3d;
+    color: var(--accent2);
+    border: 1px solid #1f3a5f;
+    margin-top: 3px;
+  }
+
+  /* 빈 상태 */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; }
+  .empty-sub { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+  /* 로딩 */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .spinner {
+    width: 24px; height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 샘플 데이터 배너 */
+  .demo-banner {
+    background: linear-gradient(90deg, #1f2d1f, #1f3a1f);
+    border: 1px solid #2d5a2d;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--green);
+  }
+  .demo-banner strong { font-weight: 600; }
+
+  /* 모달 */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    width: 520px;
+    max-width: 95vw;
+  }
+  .modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--accent);
+  }
+  .modal-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .modal-row:last-of-type { border-bottom: none; }
+  .modal-key { color: var(--text-muted); }
+  .modal-val { color: var(--text); font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+  .modal-close {
+    margin-top: 16px;
+    width: 100%;
+  }
+
+  /* 투찰가 계산기 */
+  .calc-section {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    margin-top: 14px;
+  }
+  .calc-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .calc-row label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .calc-row input {
+    width: 120px;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .calc-result {
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--bg);
+    border-radius: 5px;
+    text-align: center;
+  }
+  .calc-result-label { font-size: 11px; color: var(--text-muted); }
+  .calc-result-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: 4px;
+  }
+
+  @media (max-width: 768px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .main { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">G2B<span>/dashboard</span></div>
+  <div class="topbar-right">
+    <span class="last-update" id="lastUpdate">마지막 업데이트: --</span>
+    <div class="api-badge" onclick="toggleApiPanel()">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">API 설정</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- API 설정 패널 -->
+  <div class="api-panel" id="apiPanel">
+    <h3>⚙ 공공데이터포털 API 설정</h3>
+    <div class="api-row">
+      <label>인증키 (Encoding)</label>
+      <input type="text" id="apiKey" placeholder="발급받은 API 인증키 입력" />
+      <button class="btn btn-primary" onclick="saveApiKey()">저장 및 불러오기</button>
+    </div>
+    <div class="api-row">
+      <label>지역 코드</label>
+      <select id="regionCode">
+        <option value="">전국</option>
+        <option value="28" selected>충청남도</option>
+        <option value="30">대전광역시</option>
+        <option value="29">세종특별자치시</option>
+        <option value="11">서울특별시</option>
+      </select>
+      <label style="margin-left:16px">조회 건수</label>
+      <select id="numRows">
+        <option value="50">50건</option>
+        <option value="100" selected>100건</option>
+        <option value="200">200건</option>
+      </select>
+    </div>
+    <p class="api-notice">
+      📌 API 키 발급: <a href="https://www.data.go.kr" target="_blank">data.go.kr</a> → 검색: <strong>"나라장터 입찰공고정보 서비스"</strong> → 활용신청<br>
+      ⚠ API 키 없이는 아래 샘플 데이터로 동작합니다. 키 입력 후 실제 공고 데이터를 불러옵니다.
+    </p>
+  </div>
+
+  <!-- 데모 배너 -->
+  <div class="demo-banner" id="demoBanner">
+    <span>🔖</span>
+    <span><strong>샘플 데이터 모드</strong> — API 키를 입력하면 나라장터 실시간 공고를 불러옵니다. 우측 상단 "API 설정" 클릭</span>
+  </div>
+
+  <!-- 통계 카드 -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">전체 공고</div>
+      <div class="stat-value" id="statTotal">—</div>
+      <div class="stat-sub">오늘 기준</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">마감 임박 (3일 이내)</div>
+      <div class="stat-value accent" id="statUrgent">—</div>
+      <div class="stat-sub">즉시 확인 필요</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">기계설비</div>
+      <div class="stat-value" id="statMech">—</div>
+      <div class="stat-sub">보일러/설비 포함</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">실내건축</div>
+      <div class="stat-value" id="statInt">—</div>
+      <div class="stat-sub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">보일러 관련</div>
+      <div class="stat-value green" id="statBoiler">—</div>
+      <div class="stat-sub">⭐⭐⭐ 핵심 타겟</div>
+    </div>
+  </div>
+
+  <!-- 필터 -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">업종</span>
+      <select id="filterType" onchange="applyFilter()">
+        <option value="">전체</option>
+        <option value="기계">기계설비</option>
+        <option value="실내">실내건축</option>
+        <option value="가스">가스</option>
+        <option value="물품">물품</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">지역</span>
+      <select id="filterRegion" onchange="applyFilter()">
+        <option value="">전체</option>
+        <option value="충남">충남</option>
+        <option value="충북">충북</option>
+        <option value="대전">대전</option>
+        <option value="세종">세종</option>
+        <option value="전국">전국</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">마감</span>
+      <select id="filterDeadline" onchange="applyFilter()">
+        <option value="">전체</option>
+        <option value="3">3일 이내</option>
+        <option value="7">7일 이내</option>
+        <option value="14">14일 이내</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">금액</span>
+      <select id="filterAmount" onchange="applyFilter()">
+        <option value="">전체</option>
+        <option value="1">1억 미만</option>
+        <option value="3">3억 미만</option>
+        <option value="10">10억 미만</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <input type="text" class="search-input" id="searchKeyword" placeholder="키워드 (예: 보일러, 냉난방)" onkeyup="applyFilter()" />
+    </div>
+    <button class="btn btn-ghost" onclick="resetFilter()">초기화</button>
+    <button class="btn btn-primary" onclick="loadData()">🔄 새로고침</button>
+  </div>
+
+  <!-- 테이블 -->
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">입찰 공고 목록</span>
+      <span class="table-count" id="tableCount">— 건</span>
+    </div>
+    <div id="tableBody">
+      <div class="loading"><div class="spinner"></div>데이터 불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- 상세 모달 -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">공고 상세</div>
+    <div id="modalContent"></div>
+    <div class="calc-section">
+      <div class="calc-title">💰 투찰가 계산기</div>
+      <div class="calc-row">
+        <label>예정가격 (원)</label>
+        <input type="number" id="calcBase" oninput="calcBid()" placeholder="0" />
+      </div>
+      <div class="calc-row">
+        <label>사정률 (%)</label>
+        <input type="number" id="calcRate" value="87.745" step="0.001" oninput="calcBid()" />
+      </div>
+      <div class="calc-result">
+        <div class="calc-result-label">추천 투찰가</div>
+        <div class="calc-result-value" id="calcResult">—</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost modal-close" onclick="document.getElementById('modal').classList.remove('show')">닫기</button>
+  </div>
+</div>
+
+<script>
+// ========== 샘플 데이터 ==========
+const SAMPLE_DATA = [
+  {
+    id: 'R26BK01364902-000',
+    name: '천안시 자원봉사센터 건립공사 EHP, GHP 냉난방기',
+    org: '충청남도 천안시',
+    type: '기계가스',
+    typeTag: 'gas',
+    estimated: 219796200,
+    base: 241775820,
+    region: '충남',
+    bidStart: '2026-03-04',
+    bidEnd: '2026-03-11',
+    isBoiler: true,
+    isLimited: true,
+    limitNote: '시방서상 기재된 과업조건에 따라 납품이 가능한 업체',
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: 'R26BK01372720-000',
+    name: '국도38호선 동목지하차도 저수조 수위감시시스템 구축공사',
+    org: '국토교통부 대전지방국토관리청 예산국토관리사무소',
+    type: '기계가스',
+    typeTag: 'gas',
+    estimated: 150500000,
+    base: 165550000,
+    region: '충남',
+    bidStart: '2026-03-05',
+    bidEnd: '2026-03-12',
+    isBoiler: false,
+    isLimited: false,
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: 'R26BK01372686-000',
+    name: '국도39호선 남동지하차도 저수조 수위감시시스템 구축공사',
+    org: '국토교통부 대전지방국토관리청 예산국토관리사무소',
+    type: '기계가스',
+    typeTag: 'gas',
+    estimated: 158063637,
+    base: 173870000,
+    region: '충남',
+    bidStart: '2026-03-05',
+    bidEnd: '2026-03-12',
+    isBoiler: false,
+    isLimited: false,
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: 'R26BK01372621-000',
+    name: '국도1호선 직산지하차도 저수조 수위감시시스템 구축공사',
+    org: '국토교통부 대전지방국토관리청 예산국토관리사무소',
+    type: '기계가스',
+    typeTag: 'gas',
+    estimated: 148200000,
+    base: 163020000,
+    region: '충남',
+    bidStart: '2026-03-05',
+    bidEnd: '2026-03-13',
+    isBoiler: false,
+    isLimited: false,
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: 'R26BK01351308-000',
+    name: '이노베이션아카데미 종축공사 관급자재(냉난방기) 구매조달청',
+    org: '조달청 대전지방조달청 한국연구재단 정보통신기획평가원',
+    type: '기계가스[40]',
+    typeTag: 'gas',
+    estimated: 408181818,
+    base: 434227000,
+    region: '전국',
+    bidStart: '2026-03-09',
+    bidEnd: '2026-03-11',
+    isBoiler: false,
+    isLimited: false,
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: '2026MCS2026-01665-1',
+    name: '26-냉방기기 세관공사',
+    org: '국방부 국방부재무대근무지원단',
+    type: '기계가스',
+    typeTag: 'gas',
+    estimated: 162096364,
+    base: 174804780,
+    region: '충남',
+    bidStart: '2026-03-11',
+    bidEnd: '2026-03-11',
+    isBoiler: false,
+    isLimited: false,
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: 'S26BK00123456-000',
+    name: '아산시청 노후 보일러 교체 및 난방시스템 개선공사',
+    org: '충청남도 아산시',
+    type: '기계설비',
+    typeTag: 'mech',
+    estimated: 87500000,
+    base: 96250000,
+    region: '충남',
+    bidStart: '2026-03-08',
+    bidEnd: '2026-03-17',
+    isBoiler: true,
+    isLimited: true,
+    limitNote: '충남 소재 기계설비 등록업체',
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: 'S26BK00234567-000',
+    name: '천안교육지원청 관내 학교 실내 인테리어 공사',
+    org: '충청남도 천안교육지원청',
+    type: '실내건축',
+    typeTag: 'interior',
+    estimated: 32000000,
+    base: 35200000,
+    region: '충남',
+    bidStart: '2026-03-07',
+    bidEnd: '2026-03-18',
+    isBoiler: false,
+    isLimited: true,
+    limitNote: '충남 소재 실내건축 면허 업체',
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: 'S26BK00345678-000',
+    name: '홍성군 노인복지관 가스배관 교체 및 보일러실 개선공사',
+    org: '충청남도 홍성군',
+    type: '가스시설 2종',
+    typeTag: 'gas',
+    estimated: 24500000,
+    base: 26950000,
+    region: '충남',
+    bidStart: '2026-03-06',
+    bidEnd: '2026-03-14',
+    isBoiler: true,
+    isLimited: true,
+    limitNote: '충남 소재 가스시설시공업 2종',
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: 'S26BK00456789-000',
+    name: '세종시 행정복합도시 공동주택 보일러 유지관리 용역',
+    org: '세종특별자치시',
+    type: '기계설비',
+    typeTag: 'mech',
+    estimated: 56000000,
+    base: 61600000,
+    region: '세종',
+    bidStart: '2026-03-10',
+    bidEnd: '2026-03-20',
+    isBoiler: true,
+    isLimited: false,
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: 'S26BK00567890-000',
+    name: '당진시청 사무용 소모품 및 청소용품 납품',
+    org: '충청남도 당진시',
+    type: '물품',
+    typeTag: 'goods',
+    estimated: 8500000,
+    base: 9350000,
+    region: '충남',
+    bidStart: '2026-03-09',
+    bidEnd: '2026-03-19',
+    isBoiler: false,
+    isLimited: false,
+    link: 'https://www.g2b.go.kr'
+  },
+  {
+    id: 'S26BK00678901-000',
+    name: '공주시 의료원 중앙난방 보일러 설비 교체공사',
+    org: '공주시의료원',
+    type: '기계설비',
+    typeTag: 'mech',
+    estimated: 145000000,
+    base: 159500000,
+    region: '충남',
+    bidStart: '2026-03-08',
+    bidEnd: '2026-03-21',
+    isBoiler: true,
+    isLimited: true,
+    limitNote: '충남/대전 소재 기계설비 업체',
+    link: 'https://www.g2b.go.kr'
+  },
+];
+
+// ========== 상태 ==========
+let allData = [];
+let filteredData = [];
+let apiKey = localStorage.getItem('g2b_api_key') || '';
+let isLiveMode = false;
+
+const BOILER_KEYWORDS = ['보일러', '냉난방', '냉방', '난방', 'EHP', 'GHP', '열교환', '온수', '냉온수', '설비'];
+
+function getRelevance(item) {
+  const text = item.name + ' ' + item.type;
+  let score = 0;
+  if (text.includes('보일러')) score += 3;
+  if (text.includes('냉난방') || text.includes('냉방기') || text.includes('EHP') || text.includes('GHP')) score += 2;
+  if (text.includes('기계') || text.includes('설비')) score += 1;
+  if (text.includes('가스')) score += 1;
+  return Math.min(score, 3);
+}
+
+function getDday(dateStr) {
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const end = new Date(dateStr);
+  end.setHours(0,0,0,0);
+  return Math.floor((end - now) / (1000 * 60 * 60 * 24));
+}
+
+function formatAmount(n) {
+  if (!n) return '—';
+  if (n >= 100000000) return (n / 100000000).toFixed(1) + '억';
+  if (n >= 10000) return Math.round(n / 10000).toLocaleString() + '만';
+  return n.toLocaleString();
+}
+
+function formatAmountFull(n) {
+  if (!n) return '—';
+  return n.toLocaleString() + '원';
+}
+
+// ========== 렌더링 ==========
+function renderTable(data) {
+  const tbody = document.getElementById('tableBody');
+  document.getElementById('tableCount', `${data.length} 건`);
+  document.getElementById('tableCount').textContent = `${data.length} 건`;
+
+  if (data.length === 0) {
+    tbody.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-text">조건에 맞는 공고가 없습니다</div>
+      <div class="empty-sub">필터를 조정해보세요</div>
+    </div>`;
+    return;
+  }
+
+  const typeLabels = { mech: '기계설비', interior: '실내건축', gas: '가스', goods: '물품' };
+  const typeClasses = { mech: 'tag-mech', interior: 'tag-interior', gas: 'tag-gas', goods: 'tag-goods' };
+
+  let rows = data.map((item, i) => {
+    const dday = getDday(item.bidEnd);
+    const rel = getRelevance(item);
+    const stars = rel >= 3 ? '⭐⭐⭐' : rel >= 2 ? '⭐⭐' : rel >= 1 ? '⭐' : '';
+
+    let ddayClass = 'dday-normal';
+    let ddayText = `D-${dday}`;
+    if (dday === 0) { ddayClass = 'dday-today'; ddayText = 'D-DAY'; }
+    else if (dday < 0) { ddayClass = ''; ddayText = '마감'; }
+    else if (dday <= 3) ddayClass = 'dday-urgent';
+    else if (dday <= 7) ddayClass = 'dday-soon';
+
+    return `<tr onclick="openModal(${i})">
+      <td>
+        <div class="notice-name">${item.name}${item.isBoiler ? ' <span style="color:var(--accent);font-size:10px">🔥</span>' : ''}</div>
+        <div class="notice-org">${item.org}</div>
+        <div class="notice-id">${item.id}</div>
+        ${item.isLimited ? `<span class="limit-badge">제한경쟁</span>` : ''}
+      </td>
+      <td><span class="tag ${typeClasses[item.typeTag] || 'tag-mech'}">${item.type}</span></td>
+      <td>
+        <div class="amount">${formatAmount(item.estimated)}</div>
+        <div class="amount-base">${formatAmount(item.base)}</div>
+      </td>
+      <td><span class="region">${item.region}</span></td>
+      <td>
+        <div class="amount-base">${item.bidEnd}</div>
+        <span class="dday ${ddayClass}">${ddayText}</span>
+      </td>
+      <td><span class="relevance">${stars || '<span style="color:var(--text-dim)">—</span>'}</span></td>
+    </tr>`;
+  }).join('');
+
+  tbody.innerHTML = `<table>
+    <thead>
+      <tr>
+        <th>공고명 / 발주처</th>
+        <th>업종</th>
+        <th>추정가격 / 기초금액</th>
+        <th>지역</th>
+        <th>마감일 / D-day</th>
+        <th>관련도</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function updateStats(data) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const urgent = data.filter(d => getDday(d.bidEnd) <= 3 && getDday(d.bidEnd) >= 0).length;
+  const mech = data.filter(d => d.type.includes('기계')).length;
+  const interior = data.filter(d => d.type.includes('실내')).length;
+  const boiler = data.filter(d => getRelevance(d) >= 3).length;
+
+  document.getElementById('statTotal').textContent = data.length;
+  document.getElementById('statUrgent').textContent = urgent;
+  document.getElementById('statMech').textContent = mech;
+  document.getElementById('statInt').textContent = interior;
+  document.getElementById('statBoiler').textContent = boiler;
+}
+
+// ========== 필터 ==========
+function applyFilter() {
+  const type = document.getElementById('filterType').value;
+  const region = document.getElementById('filterRegion').value;
+  const deadline = document.getElementById('filterDeadline').value;
+  const amount = document.getElementById('filterAmount').value;
+  const keyword = document.getElementById('searchKeyword').value.toLowerCase();
+
+  filteredData = allData.filter(item => {
+    if (type && !item.type.includes(type)) return false;
+    if (region && item.region !== region) return false;
+    if (deadline) {
+      const d = getDday(item.bidEnd);
+      if (d < 0 || d > parseInt(deadline)) return false;
+    }
+    if (amount) {
+      const limit = parseFloat(amount) * 100000000;
+      if (item.estimated >= limit) return false;
+    }
+    if (keyword) {
+      const text = (item.name + item.org + item.type).toLowerCase();
+      if (!text.includes(keyword)) return false;
+    }
+    return true;
+  });
+
+  renderTable(filteredData);
+  updateStats(filteredData);
+}
+
+function resetFilter() {
+  document.getElementById('filterType').value = '';
+  document.getElementById('filterRegion').value = '';
+  document.getElementById('filterDeadline').value = '';
+  document.getElementById('filterAmount').value = '';
+  document.getElementById('searchKeyword').value = '';
+  applyFilter();
+}
+
+// ========== 데이터 로드 ==========
+function loadData() {
+  if (apiKey) {
+    loadFromAPI();
+  } else {
+    loadSampleData();
+  }
+}
+
+function loadSampleData() {
+  document.getElementById('tableBody').innerHTML = '<div class="loading"><div class="spinner"></div>샘플 데이터 로드 중...</div>';
+  setTimeout(() => {
+    allData = SAMPLE_DATA;
+    filteredData = [...allData];
+    renderTable(filteredData);
+    updateStats(filteredData);
+    document.getElementById('lastUpdate').textContent = '마지막 업데이트: ' + new Date().toLocaleString('ko-KR');
+    document.getElementById('statusDot').className = 'dot';
+    document.getElementById('statusText').textContent = '샘플 모드';
+    document.getElementById('demoBanner').style.display = 'flex';
+  }, 600);
+}
+
+async function loadFromAPI() {
+  document.getElementById('tableBody').innerHTML = '<div class="loading"><div class="spinner"></div>나라장터 API에서 공고 불러오는 중...</div>';
+  document.getElementById('demoBanner').style.display = 'none';
+
+  try {
+    // CORS 우회를 위한 프록시 또는 로컬 실행 필요
+    // 실제 배포 시 Python 백엔드가 데이터를 JSON으로 저장하고
+    // 여기서 그 JSON 파일을 fetch하는 방식 사용
+    const response = await fetch(`data/notices.json`);
+    if (!response.ok) throw new Error('데이터 파일 없음');
+    const data = await response.json();
+    allData = data;
+    filteredData = [...allData];
+    renderTable(filteredData);
+    updateStats(filteredData);
+    document.getElementById('lastUpdate').textContent = '마지막 업데이트: ' + new Date().toLocaleString('ko-KR');
+    document.getElementById('statusDot').className = 'dot live';
+    document.getElementById('statusText').textContent = '실시간 데이터';
+  } catch(e) {
+    // JSON 파일 없으면 샘플로 폴백
+    loadSampleData();
+    console.log('API 데이터 없음, 샘플 데이터 사용:', e.message);
+  }
+}
+
+// ========== 모달 ==========
+function openModal(idx) {
+  const item = filteredData[idx];
+  if (!item) return;
+
+  document.getElementById('modalTitle').textContent = item.name;
+  document.getElementById('calcBase').value = item.estimated || '';
+  calcBid();
+
+  const rel = getRelevance(item);
+  const dday = getDday(item.bidEnd);
+
+  document.getElementById('modalContent').innerHTML = `
+    <div class="modal-row"><span class="modal-key">공고번호</span><span class="modal-val">${item.id}</span></div>
+    <div class="modal-row"><span class="modal-key">발주처</span><span class="modal-val" style="font-family:inherit">${item.org}</span></div>
+    <div class="modal-row"><span class="modal-key">업종</span><span class="modal-val">${item.type}</span></div>
+    <div class="modal-row"><span class="modal-key">추정가격</span><span class="modal-val">${formatAmountFull(item.estimated)}</span></div>
+    <div class="modal-row"><span class="modal-key">기초금액</span><span class="modal-val">${formatAmountFull(item.base)}</span></div>
+    <div class="modal-row"><span class="modal-key">지역</span><span class="modal-val">${item.region}</span></div>
+    <div class="modal-row"><span class="modal-key">입찰기간</span><span class="modal-val">${item.bidStart} ~ ${item.bidEnd}</span></div>
+    <div class="modal-row"><span class="modal-key">마감</span><span class="modal-val" style="color:${dday<=3?'var(--red)':dday<=7?'var(--yellow)':'var(--green)'}">D-${dday}</span></div>
+    <div class="modal-row"><span class="modal-key">보일러 관련</span><span class="modal-val">${item.isBoiler ? '🔥 예' : '—'}</span></div>
+    ${item.isLimited ? `<div class="modal-row"><span class="modal-key">제한조건</span><span class="modal-val" style="font-family:inherit;font-size:11px">${item.limitNote}</span></div>` : ''}
+    <div class="modal-row"><span class="modal-key">보일러 관련도</span><span class="modal-val">${'⭐'.repeat(rel) || '—'}</span></div>
+  `;
+
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('show');
+  }
+}
+
+// ========== 투찰가 계산 ==========
+function calcBid() {
+  const base = parseFloat(document.getElementById('calcBase').value);
+  const rate = parseFloat(document.getElementById('calcRate').value);
+  if (!base || !rate) { document.getElementById('calcResult').textContent = '—'; return; }
+  const result = Math.round(base * (rate / 100));
+  document.getElementById('calcResult').textContent = result.toLocaleString() + '원';
+}
+
+// ========== API 패널 ==========
+function toggleApiPanel() {
+  document.getElementById('apiPanel').classList.toggle('show');
+}
+
+function saveApiKey() {
+  apiKey = document.getElementById('apiKey').value.trim();
+  if (apiKey) {
+    localStorage.setItem('g2b_api_key', apiKey);
+    alert('API 키 저장됨. 데이터를 불러옵니다.');
+    toggleApiPanel();
+    loadData();
+  } else {
+    localStorage.removeItem('g2b_api_key');
+    loadSampleData();
+  }
+}
+
+// ========== 초기화 ==========
+window.onload = () => {
+  if (apiKey) {
+    document.getElementById('apiKey').value = apiKey;
+  }
+  loadData();
+  // 1시간마다 자동 새로고침
+  setInterval(loadData, 60 * 60 * 1000);
+};
+</script>
+</body>
+</html>
