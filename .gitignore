@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Data (collected notices - committed separately)
+# data/notices.json  ← 수집 결과는 커밋에 포함
+!data/notices.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Claude
+.claude/
