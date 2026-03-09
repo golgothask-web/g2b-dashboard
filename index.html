@@ -869,10 +869,61 @@ let filteredData = [];
 let apiKey = localStorage.getItem('g2b_api_key') || '';
 let isLiveMode = false;
 
-const BOILER_KEYWORDS = ['보일러', '냉난방', '냉방', '난방', 'EHP', 'GHP', '열교환', '온수', '냉온수', '설비'];
+// ========== API 데이터 정규화 ==========
+// notices.json(API 원본 필드)을 렌더링 형식으로 변환
+function normalizeNotice(item) {
+  // 이미 샘플 데이터 형식이면 그대로 반환
+  if (item.name) return item;
+
+  const indstry = item.indstrytyNm || item.cnstwkEtcIndstrytyNm || '';
+  const cat = item._category || '공사';
+
+  let type, typeTag;
+  if (cat === '물품') {
+    type = '물품'; typeTag = 'goods';
+  } else if (indstry.includes('실내')) {
+    type = '실내건축'; typeTag = 'interior';
+  } else if (indstry.includes('가스')) {
+    type = indstry || '기계가스'; typeTag = 'gas';
+  } else {
+    type = indstry || '기계설비'; typeTag = 'mech';
+  }
+
+  const regionName = item._region_name || '';
+  let region = '전국';
+  if (regionName.includes('충청남도') || regionName.includes('아산시')) region = '충남';
+  else if (regionName.includes('충청북도')) region = '충북';
+  else if (regionName.includes('대전')) region = '대전';
+  else if (regionName.includes('세종')) region = '세종';
+  else if (regionName.includes('서울')) region = '서울';
+  else if (!regionName.startsWith('전국')) region = regionName;
+
+  const bidEnd = (item.bidClseDt || item.bidQlfctRgstDt || '').split(' ')[0];
+  const bidStart = (item.bidBeginDt || item.bidNtceDt || '').split(' ')[0];
+  const relevance = typeof item._relevance === 'number' ? item._relevance : 0;
+
+  return {
+    id: `${item.bidNtceNo || ''}-${item.bidNtceOrd || '000'}`,
+    name: item.bidNtceNm || '',
+    org: item.dminsttNm || item.ntceInsttNm || '',
+    type,
+    typeTag,
+    estimated: parseFloat(item.presmptPrce) || 0,
+    base: parseFloat(item.bdgtAmt) || 0,
+    region,
+    bidStart,
+    bidEnd,
+    isBoiler: relevance >= 3,
+    isLimited: item.bidPrtcptLmtYn === 'Y',
+    limitNote: item.bidPrtcptLmtNm || '',
+    link: `https://www.g2b.go.kr`,
+    _relevance: relevance,
+  };
+}
 
 function getRelevance(item) {
-  const text = item.name + ' ' + item.type;
+  if (typeof item._relevance === 'number') return item._relevance;
+  const text = (item.name || '') + ' ' + (item.type || '');
   let score = 0;
   if (text.includes('보일러')) score += 3;
   if (text.includes('냉난방') || text.includes('냉방기') || text.includes('EHP') || text.includes('GHP')) score += 2;
@@ -1052,7 +1103,7 @@ async function loadFromAPI() {
     const response = await fetch(`data/notices.json?t=${new Date().getTime()}`);
     if (!response.ok) throw new Error('데이터 파일 없음');
     const data = await response.json();
-    allData = data.notices || data; // 구조 대응
+    allData = (data.notices || data).map(normalizeNotice); // API 필드 → 렌더링 형식 변환
     filteredData = [...allData];
     renderTable(filteredData);
     updateStats(filteredData);
